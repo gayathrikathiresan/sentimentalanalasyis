@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Face Emotion Demo</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 16px; }
+      #video { border: 1px solid #ddd; width: 480px; height: 360px; }
+      #result { margin-top: 12px; font-size: 1.2rem; }
+    </style>
+  </head>
+  <body>
+    <h2>Face Emotion Demo</h2>
+    <video id="video" autoplay playsinline></video>
+    <div>
+      <button id="capture">Capture & Predict</button>
+      <input type="file" id="upload" accept="image/*" style="margin-left:10px;" />
+      <button id="uploadBtn">Upload & Predict</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+      const video = document.getElementById('video');
+      const captureBtn = document.getElementById('capture');
+      const resultDiv = document.getElementById('result');
+
+      async function startCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          resultDiv.textContent = 'Camera API not supported. Use file upload below.';
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = stream;
+        } catch (e) {
+          resultDiv.textContent = 'Camera access denied or not available. Use file upload below.';
+        }
+      }
+
+      function captureFrame() {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 480;
+        canvas.height = video.videoHeight || 360;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+      }
+
+      captureBtn.addEventListener('click', async () => {
+        resultDiv.textContent = 'Processing...';
+        const blob = await captureFrame();
+        const form = new FormData();
+        form.append('image', blob, 'frame.jpg');
+        await sendForm(form);
+      });
+
+      document.getElementById('uploadBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('upload');
+        if (!fileInput.files || fileInput.files.length === 0) {
+          resultDiv.textContent = 'Please choose a file first.';
+          return;
+        }
+        const form = new FormData();
+        form.append('image', fileInput.files[0]);
+        resultDiv.textContent = 'Uploading...';
+        await sendForm(form);
+      });
+
+      async function sendForm(form) {
+        try {
+          const res = await fetch('/predict', { method: 'POST', body: form });
+          const data = await res.json();
+          if (data.error) {
+            resultDiv.textContent = 'Error: ' + data.error;
+            return;
+          }
+          const confs = data.confidences.map((c, i) => `${i}:${(c*100).toFixed(1)}%`).join(' ');
+          resultDiv.innerHTML = `<b>Prediction:</b> ${data.label} <br/><b>Confidences:</b> ${confs}`;
+        } catch (err) {
+          resultDiv.textContent = 'Server error: ' + err;
+        }
+      }
+
+      startCamera();
+    </script>
+  </body>
+</html>
