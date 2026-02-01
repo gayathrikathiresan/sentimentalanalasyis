@@ -3,67 +3,314 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Face Emotion Demo</title>
+    <title>Sentiment Analyzer - Facial Emotion Recognition</title>
     <style>
-      body { font-family: Arial, sans-serif; padding: 16px; }
-      #video { border: 1px solid #ddd; width: 480px; height: 360px; }
-      #result { margin-top: 12px; font-size: 1.2rem; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        padding: 30px;
+      }
+      
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 2.5em;
+      }
+      
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 0.95em;
+      }
+      
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #eee;
+      }
+      
+      .tab-btn {
+        padding: 12px 20px;
+        border: none;
+        background: none;
+        font-size: 1em;
+        cursor: pointer;
+        color: #666;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+      }
+      
+      .tab-btn.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+        font-weight: bold;
+      }
+      
+      .tab-content {
+        display: none;
+      }
+      
+      .tab-content.active {
+        display: block;
+      }
+      
+      .camera-section {
+        text-align: center;
+      }
+      
+      #video {
+        border: 2px solid #ddd;
+        width: 100%;
+        max-width: 500px;
+        height: 400px;
+        border-radius: 8px;
+        margin: 20px auto;
+        display: block;
+        background: #000;
+      }
+      
+      .upload-section {
+        text-align: center;
+      }
+      
+      .file-input-wrapper {
+        display: inline-block;
+        margin: 20px 0;
+      }
+      
+      input[type="file"] {
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      
+      .button-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 20px 0;
+      }
+      
+      button {
+        padding: 12px 24px;
+        font-size: 1em;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: bold;
+      }
+      
+      #capture, #uploadBtn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      
+      #capture:hover, #uploadBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+      
+      #result {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9ff;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+      }
+      
+      .emotion-result {
+        text-align: center;
+        padding: 20px;
+      }
+      
+      .emotion-label {
+        font-size: 2.5em;
+        color: #667eea;
+        font-weight: bold;
+        margin: 20px 0;
+      }
+      
+      .emotion-icon {
+        font-size: 4em;
+        margin: 10px 0;
+      }
+      
+      .confidence-bars {
+        margin-top: 20px;
+        text-align: left;
+      }
+      
+      .emotion-name {
+        display: inline-block;
+        width: 100px;
+        text-align: left;
+        font-weight: 500;
+      }
+      
+      .bar-container {
+        display: inline-block;
+        width: calc(100% - 120px);
+        height: 30px;
+        background: #eee;
+        border-radius: 5px;
+        overflow: hidden;
+        vertical-align: middle;
+        margin: 0 10px;
+      }
+      
+      .bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transition: width 0.5s ease;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 10px;
+        color: white;
+        font-weight: bold;
+        font-size: 0.9em;
+      }
+      
+      .emotion-row {
+        margin: 10px 0;
+      }
+      
+      .error {
+        color: #e74c3c;
+        font-weight: bold;
+      }
+      
+      .loading {
+        color: #667eea;
+        font-weight: bold;
+      }
+      
+      .hidden {
+        display: none;
+      }
     </style>
   </head>
   <body>
-    <h2>Face Emotion Demo</h2>
-    <video id="video" autoplay playsinline></video>
-    <div>
-      <button id="capture">Capture & Predict</button>
-      <input type="file" id="upload" accept="image/*" style="margin-left:10px;" />
-      <button id="uploadBtn">Upload & Predict</button>
+    <div class="container">
+      <h1>🎭 Sentiment Analyzer</h1>
+      <p class="subtitle">Facial Emotion Recognition using Deep Learning</p>
+      
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('camera')">📷 Camera</button>
+        <button class="tab-btn" onclick="switchTab('upload')">📁 Upload Image</button>
+      </div>
+      
+      <div id="camera" class="tab-content active camera-section">
+        <video id="video" autoplay playsinline></video>
+        <div class="button-group">
+          <button id="capture">Capture & Analyze</button>
+        </div>
+      </div>
+      
+      <div id="upload" class="tab-content upload-section">
+        <div class="file-input-wrapper">
+          <input type="file" id="upload-file" accept="image/*" />
+        </div>
+        <div class="button-group">
+          <button id="uploadBtn">Upload & Analyze</button>
+        </div>
+      </div>
+      
+      <div id="result"></div>
     </div>
-    <div id="result"></div>
 
     <script>
       const video = document.getElementById('video');
       const captureBtn = document.getElementById('capture');
+      const uploadBtn = document.getElementById('uploadBtn');
       const resultDiv = document.getElementById('result');
+      
+      const emotionEmojis = {
+        'Angry': '😠',
+        'Disgust': '🤢',
+        'Fear': '😨',
+        'Happy': '😊',
+        'Sad': '😢',
+        'Surprise': '😲',
+        'Neutral': '😐'
+      };
+
+      function switchTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tab).classList.add('active');
+        event.target.classList.add('active');
+        
+        if (tab === 'camera') {
+          startCamera();
+        }
+      }
 
       async function startCamera() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          resultDiv.textContent = 'Camera API not supported. Use file upload below.';
+          resultDiv.innerHTML = '<p class="error">Camera API not supported. Use file upload instead.</p>';
           return;
         }
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
           video.srcObject = stream;
         } catch (e) {
-          resultDiv.textContent = 'Camera access denied or not available. Use file upload below.';
+          resultDiv.innerHTML = '<p class="error">Camera access denied. Use file upload instead.</p>';
         }
       }
 
       function captureFrame() {
         const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 480;
-        canvas.height = video.videoHeight || 360;
+        canvas.width = video.videoWidth || 500;
+        canvas.height = video.videoHeight || 400;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
       }
 
       captureBtn.addEventListener('click', async () => {
-        resultDiv.textContent = 'Processing...';
-        const blob = await captureFrame();
-        const form = new FormData();
-        form.append('image', blob, 'frame.jpg');
-        await sendForm(form);
+        resultDiv.innerHTML = '<p class="loading">⏳ Processing image...</p>';
+        try {
+          const blob = await captureFrame();
+          const form = new FormData();
+          form.append('image', blob, 'frame.jpg');
+          await sendForm(form);
+        } catch (err) {
+          resultDiv.innerHTML = '<p class="error">Error capturing frame: ' + err + '</p>';
+        }
       });
 
-      document.getElementById('uploadBtn').addEventListener('click', async () => {
-        const fileInput = document.getElementById('upload');
+      uploadBtn.addEventListener('click', async () => {
+        const fileInput = document.getElementById('upload-file');
         if (!fileInput.files || fileInput.files.length === 0) {
-          resultDiv.textContent = 'Please choose a file first.';
+          resultDiv.innerHTML = '<p class="error">Please choose a file first.</p>';
           return;
         }
         const form = new FormData();
         form.append('image', fileInput.files[0]);
-        resultDiv.textContent = 'Uploading...';
+        resultDiv.innerHTML = '<p class="loading">⏳ Analyzing image...</p>';
         await sendForm(form);
       });
 
@@ -71,14 +318,47 @@
         try {
           const res = await fetch('/predict', { method: 'POST', body: form });
           const data = await res.json();
+          
           if (data.error) {
-            resultDiv.textContent = 'Error: ' + data.error;
+            const errorMap = {
+              'no_image': 'No image provided',
+              'bad_image': 'Invalid image format',
+              'no_face': 'No face detected in the image'
+            };
+            resultDiv.innerHTML = '<p class="error">❌ ' + (errorMap[data.error] || 'Error: ' + data.error) + '</p>';
             return;
           }
-          const confs = data.confidences.map((c, i) => `${i}:${(c*100).toFixed(1)}%`).join(' ');
-          resultDiv.innerHTML = `<b>Prediction:</b> ${data.label} <br/><b>Confidences:</b> ${confs}`;
+          
+          const emoji = emotionEmojis[data.label] || '😐';
+          const emotionNames = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral'];
+          
+          let confidenceHTML = '<div class="confidence-bars">';
+          confidenceHTML += '<h3>Confidence Scores:</h3>';
+          
+          data.confidences.forEach((conf, idx) => {
+            const percentage = (conf * 100).toFixed(1);
+            const barWidth = (conf * 100).toFixed(0);
+            confidenceHTML += `
+              <div class="emotion-row">
+                <span class="emotion-name">${emotionNames[idx]}</span>
+                <div class="bar-container">
+                  <div class="bar" style="width: ${barWidth}%">${percentage}%</div>
+                </div>
+              </div>
+            `;
+          });
+          confidenceHTML += '</div>';
+          
+          resultDiv.innerHTML = `
+            <div class="emotion-result">
+              <h2>Detected Emotion:</h2>
+              <div class="emotion-icon">${emoji}</div>
+              <div class="emotion-label">${data.label}</div>
+              ${confidenceHTML}
+            </div>
+          `;
         } catch (err) {
-          resultDiv.textContent = 'Server error: ' + err;
+          resultDiv.innerHTML = '<p class="error">Server error: ' + err + '</p>';
         }
       }
 
